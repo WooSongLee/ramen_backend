@@ -1,7 +1,9 @@
+import datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 from DB import *;
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 
 app = FastAPI()
 app.add_middleware(
@@ -18,14 +20,36 @@ class UserInput(BaseModel):
     phone: str
     score: int
 
+
 @app.post("/start")
 async def start(user: UserInput):
     conn = await get_db_connection()
     async with conn.cursor() as cursor:
         await cursor.execute("""
-            INSERT INTO ranking (name, phone, score)
-            VALUES (%s, %s, %s)
-        """, (user.name, user.phone, user.score))
+            SELECT name, score FROM ranking WHERE phone = %s
+        """, (user.phone,))
+        result = await cursor.fetchone()
+
+        if result:
+            existing_name, existing_score = result
+            if existing_name != user.name:
+                await cursor.execute("""
+                    UPDATE ranking
+                    SET name = %s
+                    WHERE phone = %s
+                """, (user.name, user.phone))
+            if user.score > existing_score:
+                await cursor.execute("""
+                    UPDATE ranking
+                    SET score = %s, created_at = %s
+                    WHERE phone = %s
+                """, (user.score, datetime.now(), user.phone))
+        else:
+            await cursor.execute("""
+                INSERT INTO ranking (name, phone, score, created_at)
+                VALUES (%s, %s, %s, %s)
+            """, (user.name, user.phone, user.score, datetime.now()))
+
     conn.close()
 
 
