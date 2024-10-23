@@ -10,6 +10,7 @@ ranking:
 
 import re
 import uvicorn
+import asyncio
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, validator
@@ -113,9 +114,11 @@ async def get_ranking():
         finally:
             conn.close()
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Database connection error")
+        raise HTTPException(status_code=500, detail="Database connection error: " + str(e))
 
     return {"ranking": ranking_data}
 
 if __name__ == "__main__":
+    asyncio.run(setup_database())
+
     uvicorn.run("main:app", host="0.0.0.0", port=7700, workers=4, reload=False, proxy_headers=True)
