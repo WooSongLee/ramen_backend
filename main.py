@@ -118,7 +118,27 @@ async def get_ranking():
 
     return {"ranking": ranking_data}
 
+@app.on_event("startup")
+async def startup_event():
+    try:
+        conn = await get_db_connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ranking (
+                        name TEXT NOT NULL,
+                        score INT NOT NULL,
+                        phone VARCHAR(15) NOT NULL,
+                        created_at DATETIME NOT NULL,
+                        PRIMARY KEY (phone)
+                    );
+                """)
+                await conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print("Database initialization failed:", e)
+        raise e
+    
 if __name__ == "__main__":
-    asyncio.run(setup_database())
-
     uvicorn.run("main:app", host="0.0.0.0", port=7700, workers=4, reload=False, proxy_headers=True)

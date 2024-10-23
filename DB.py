@@ -13,8 +13,6 @@ DATABASE_CONFIG = {
 async def get_db_connection():
     return await aiomysql.connect(**DATABASE_CONFIG)
 
-
-
 async def setup_database():
     try:
         conn = await get_db_connection()
