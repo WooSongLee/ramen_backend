@@ -12,14 +12,38 @@ import re
 import uvicorn
 import asyncio
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, validator
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from DB import *;
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        conn = await get_db_connection()
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ranking (
+                        name TEXT NOT NULL,
+                        score INT NOT NULL,
+                        phone VARCHAR(15) NOT NULL,
+                        created_at DATETIME NOT NULL,
+                        PRIMARY KEY (phone)
+                    );
+                """)
+                await conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print("Database initialization failed:", e)
+        raise e
+    
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,27 +142,6 @@ async def get_ranking():
 
     return {"ranking": ranking_data}
 
-@app.on_event("startup")
-async def startup_event():
-    try:
-        conn = await get_db_connection()
-        try:
-            async with conn.cursor() as cursor:
-                await cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS ranking (
-                        name TEXT NOT NULL,
-                        score INT NOT NULL,
-                        phone VARCHAR(15) NOT NULL,
-                        created_at DATETIME NOT NULL,
-                        PRIMARY KEY (phone)
-                    );
-                """)
-                await conn.commit()
-        finally:
-            conn.close()
-    except Exception as e:
-        print("Database initialization failed:", e)
-        raise e
     
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=7700, workers=4, reload=False, proxy_headers=True)
