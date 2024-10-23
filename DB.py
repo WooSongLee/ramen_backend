@@ -30,11 +30,14 @@ async def setup_database():
                         PRIMARY KEY (phone)
                     );
                 """)
+        except aiomysql.Warning as warn:
+            # 테이블이 이미 존재할 경우 경고 무시
+            pass
         except Exception as e:
-            print("DB 쿼리 에러")
+            print("DB 쿼리 에러:", e)
             exit()
-        
-        await conn.close()
+        finally:
+            await conn.close()
     except Exception as e:
-        print("DB 연결 실패")
+        print("DB 연결 실패:", e)
         exit()
