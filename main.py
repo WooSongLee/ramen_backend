@@ -10,7 +10,6 @@ ranking:
 
 import re
 import uvicorn
-import asyncio
 from datetime import datetime
 from pydantic import BaseModel, validator
 from contextlib import asynccontextmanager
@@ -71,8 +70,8 @@ class UserInput(BaseModel):
             raise ValueError('Score must be between 0 and 1500')
         return v
 
-@app.post("/start")
-async def start(user: UserInput):
+@app.post("/add_score")
+async def add_score(user: UserInput):
     try:
         conn = await get_db_connection()
         try:
