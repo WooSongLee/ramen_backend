@@ -128,7 +128,7 @@ async def get_ranking():
                     SELECT name, score 
                     FROM ranking 
                     ORDER BY score DESC, created_at ASC 
-                    LIMIT 10
+                    LIMIT 5
                 """)
                 ranking_data = await cursor.fetchall()
                 
